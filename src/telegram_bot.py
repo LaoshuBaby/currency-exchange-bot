@@ -81,11 +81,19 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 /about - 关于此机器人
 
 💰 支持的货币代码：
+
+💵 主要法币：
 USD - 美元        EUR - 欧元
 GBP - 英镑        JPY - 日元
 CNY - 人民币      HKD - 港币
 KRW - 韩元        AUD - 澳元
 CAD - 加元        SGD - 新加坡元
+
+🔗 加密货币（仅Google Finance支持）：
+BTC - 比特币      ETH - 以太坊
+BNB - 币安币      XRP - 瑞波币
+ADA - 卡尔达诺    SOL - Solana
+DOGE - 狗狗币
 
 🔧 技术信息：
 • 使用 python-telegram-bot 库
@@ -152,9 +160,13 @@ async def exchange_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     # 获取汇率（使用真实API）
     try:
-        result = get_rate(from_currency, to_currency, amount)
+        # 使用get_rate_with_info获取包含提供者信息的完整结果
+        rate_info = get_rate_with_info(from_currency, to_currency, amount)
         
-        if result is not None:
+        if rate_info.get('success') and rate_info.get('result') is not None:
+            result = rate_info['result']
+            provider_name = rate_info['provider']
+            
             # 计算汇率（每单位）
             rate = result / amount if amount > 0 else 0
             
@@ -167,7 +179,7 @@ async def exchange_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             response += f"💰 兑换结果：\n"
             response += f"**{amount:,.2f} {from_currency} ≈ {result:,.2f} {to_currency}**\n\n"
             
-            # 显示常见金额换算
+            # 显示常见金额换算（基于一次查询结果计算，不重复查询）
             if amount != 1:
                 response += f"📈 其他金额换算：\n"
                 common_amounts = [1, 10, 50, 100, 500, 1000]
@@ -184,10 +196,12 @@ async def exchange_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             
             response += f"\n\n⏰ 查询时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
             response += f"\n📍 时区：东京时间 (JST)"
-            response += f"\n✅ 使用实时汇率数据 (Frankfurter API)"
+            response += f"\n📊 数据来源：{provider_name}"
             
         else:
+            error_msg = rate_info.get('error', '未知错误')
             response = f"❌ 无法获取 {from_currency} 到 {to_currency} 的汇率\n\n"
+            response += f"错误信息：{error_msg}\n\n"
             response += "可能原因：\n"
             response += "• 货币代码不正确\n"
             response += "• 该货币对暂不支持\n"
