@@ -1,26 +1,53 @@
 # 汇率查询工具和Telegram机器人
 
-这个项目包含多个Python脚本，用于查询汇率和创建Telegram机器人。
+这个项目包含一个统一的currency模块用于汇率查询，以及Telegram机器人相关文件。
 
-## 汇率查询脚本
+## Currency模块
 
-### 1. `exchange_rate_scraper.py`
-- **功能**: 通过Google搜索解析网页获取汇率信息
-- **方法**: 使用requests库发送搜索请求，BeautifulSoup解析HTML
-- **特点**: 尝试多种搜索查询和解析模式
-- **适用场景**: 需要从网页直接抓取汇率信息的情况
+### 模块结构
+```
+currency/
+├── __init__.py              # 模块初始化
+├── main.py                  # 主入口文件，提供统一接口
+└── providers/               # 汇率查询提供者
+    ├── __init__.py          # 提供者注册
+    ├── exchangerate_api.py  # ExchangeRate-API提供者
+    ├── frankfurter.py       # Frankfurter提供者
+    ├── openexchangerates.py # Open Exchange Rates提供者
+    └── google_finance.py    # Google财经提供者
+```
 
-### 2. `exchange_rate_simple.py`
-- **功能**: 使用公开API获取汇率数据
-- **方法**: 调用多个汇率API服务（ExchangeRate-API, Frankfurter等）
-- **特点**: 更可靠、更稳定，有备用API
-- **适用场景**: 需要稳定获取汇率数据的生产环境
+### 核心功能
+- **统一接口**: 提供简单的`get_rate()`函数
+- **多提供者支持**: 4个不同的汇率查询提供者
+- **货币代码验证**: 支持24种常见货币
+- **错误处理**: 完善的异常处理和验证
 
-### 3. `exchange_rate_multi.py`
-- **功能**: 支持任意货币对查询的多货币版本
-- **方法**: 命令行参数指定来源货币、目标货币和金额
-- **特点**: 支持20+种常见货币，显示换算示例
-- **适用场景**: 需要查询多种货币汇率的场景
+### 主要函数
+```python
+from currency import get_rate, get_rate_with_info
+
+# 基本使用（默认提供者）
+result = get_rate("JPY", "CNY", 100)  # 100日元兑人民币
+
+# 指定提供者
+result = get_rate("USD", "EUR", 1, provider="frankfurter")
+
+# 获取详细信息
+info = get_rate_with_info("GBP", "JPY", 50, provider="openexchangerates")
+```
+
+### 支持的提供者
+1. **exchangerate_api** (默认) - ExchangeRate-API
+2. **frankfurter** - Frankfurter API
+3. **openexchangerates** - Open Exchange Rates
+4. **google_finance** - Google财经页面
+
+### 支持的货币
+- **主要货币**: USD, EUR, GBP, JPY, CNY, HKD, KRW, AUD, CAD, SGD
+- **其他货币**: CHF, INR, RUB, BRL, MXN, IDR, THB, VND, MYR, PHP
+- **加密货币**: BTC, ETH
+- **贵金属**: XAU (黄金), XAG (白银)
 
 ## Telegram机器人
 
