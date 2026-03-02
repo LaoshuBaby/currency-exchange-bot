@@ -37,7 +37,6 @@ venv.bak/
 *~
 
 # Data files
-*.json
 *.csv
 *.log
 *.db

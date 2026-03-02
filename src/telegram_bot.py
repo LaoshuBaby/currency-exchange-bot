@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 # 从环境变量获取Bot Token（推荐方式）
 # 或者在代码中直接设置（不推荐用于生产环境）
-BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "YOUR_BOT_TOKEN_HERE")
+BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "8490327385:AAH2mRA21dUJTB9-1j13NeubH3ge-ESuylc")
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """处理 /start 命令"""
