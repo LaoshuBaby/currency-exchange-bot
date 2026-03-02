@@ -5,7 +5,11 @@ Currency Exchange Bot 使用示例
 这个文件展示了如何使用currency模块进行汇率查询。
 """
 
-from currency import get_rate, get_supported_currencies, get_supported_providers
+import sys
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+
+from src.currency import get_rate, get_supported_currencies, get_supported_providers
 
 def main():
     """主函数：展示currency模块的使用方法"""

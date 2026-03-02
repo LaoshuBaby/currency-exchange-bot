@@ -13,7 +13,7 @@
 ## 2. 配置机器人
 
 ### 方法A：直接修改代码（简单但不安全）
-编辑 `telegram_bot.py` 文件，将第20行：
+编辑 `src/telegram_bot.py` 文件，将第20行：
 ```python
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "YOUR_BOT_TOKEN_HERE")
 ```
@@ -58,7 +58,7 @@ pip install python-telegram-bot
 ### 运行机器人：
 ```bash
 # 运行机器人（需要配置Token）
-python3 telegram_bot.py
+python3 src/telegram_bot.py
 ```
 
 ## 4. 测试机器人
@@ -132,14 +132,14 @@ pip install python-telegram-bot
 ## 9. 扩展功能
 
 ### 集成真实汇率API
-修改 `telegram_bot.py` 中的 `get_mock_rate()` 函数，调用真实的汇率API：
+修改 `src/telegram_bot.py` 中的 `get_mock_rate()` 函数，调用真实的汇率API：
 
 ```python
 def get_real_rate(from_currency, to_currency):
     """调用真实汇率API"""
     try:
         # 使用currency模块的汇率查询函数
-        from currency import get_rate
+        from src.currency import get_rate
         return get_rate(from_currency, to_currency, 1.0)
     except:
         return None
@@ -155,13 +155,13 @@ application.add_handler(CommandHandler("newcommand", new_command_function))
 
 ### 本地运行（开发）
 ```bash
-python3 telegram_bot.py
+python3 src/telegram_bot.py
 ```
 
 ### 服务器运行（生产）
 ```bash
 # 使用nohup在后台运行
-nohup python3 telegram_bot.py > bot.log 2>&1 &
+nohup python3 src/telegram_bot.py > bot.log 2>&1 &
 
 # 使用systemd服务（推荐）
 # 创建服务文件：/etc/systemd/system/telegram-bot.service
@@ -174,7 +174,7 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 COPY . .
-CMD ["python", "telegram_bot.py"]
+CMD ["python", "src/telegram_bot.py"]
 ```
 
 ## 11. 联系支持

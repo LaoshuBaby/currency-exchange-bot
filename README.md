@@ -31,7 +31,7 @@ pip install -r requirements.txt
 ### 使用Currency模块
 
 ```python
-from currency import get_rate
+from src.currency import get_rate
 
 # 查询100日元兑人民币
 result = get_rate("JPY", "CNY", 100)
@@ -51,11 +51,11 @@ print(f"1美元 ≈ {result:.4f}欧元")
    # 方法1：设置环境变量
    export TELEGRAM_BOT_TOKEN="你的token"
    
-   # 方法2：直接修改telegram_bot.py中的BOT_TOKEN变量
+   # 方法2：直接修改src/telegram_bot.py中的BOT_TOKEN变量
    ```
 4. 运行机器人：
    ```bash
-   python telegram_bot.py
+   python src/telegram_bot.py
    ```
 
 ## 📱 Telegram机器人命令
