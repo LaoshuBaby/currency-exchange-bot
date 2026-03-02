@@ -1,0 +1,13 @@
+# Currency Exchange Bot 依赖包
+
+# 核心依赖
+requests>=2.31.0
+python-telegram-bot>=20.7
+
+# 可选依赖（用于时区处理）
+pytz>=2024.1
+
+# 开发依赖
+pytest>=7.4.0
+black>=23.0.0
+flake8>=6.0.0

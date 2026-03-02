@@ -1,6 +1,79 @@
-# 汇率查询工具和Telegram机器人
+# Currency Exchange Bot - 货币兑换机器人
 
-这个项目包含一个统一的currency模块用于汇率查询，以及Telegram机器人相关文件。
+一个包含统一汇率查询模块和Telegram机器人的Python项目，支持多种货币兑换查询和实时汇率获取。
+
+[![GitHub stars](https://img.shields.io/github/stars/LaoshuBaby/currency-exchange-bot?style=social)](https://github.com/LaoshuBaby/currency-exchange-bot/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/LaoshuBaby/currency-exchange-bot?style=social)](https://github.com/LaoshuBaby/currency-exchange-bot/network)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python Version](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+
+## ✨ 项目特点
+
+- **统一汇率查询模块**: 支持4个不同的汇率API提供者
+- **Telegram机器人**: 提供便捷的/exchange命令进行货币兑换查询
+- **多货币支持**: 支持24种常见货币，包括主要货币、加密货币和贵金属
+- **灵活的参数格式**: 支持带金额和不带金额的查询
+- **完善的错误处理**: 参数验证、错误提示和友好的用户界面
+- **东京时间同步**: 机器人显示东京时间，适合日本用户使用
+
+## 🚀 快速开始
+
+### 安装依赖
+
+```bash
+# 克隆项目
+git clone https://github.com/LaoshuBaby/currency-exchange-bot.git
+cd currency-exchange-bot
+
+# 安装依赖
+pip install -r requirements.txt
+```
+
+### 使用Currency模块
+
+```python
+from currency import get_rate
+
+# 查询100日元兑人民币
+result = get_rate("JPY", "CNY", 100)
+print(f"100日元 ≈ {result:.2f}人民币")
+
+# 使用指定提供者
+result = get_rate("USD", "EUR", 1, provider="frankfurter")
+print(f"1美元 ≈ {result:.4f}欧元")
+```
+
+### 运行Telegram机器人
+
+1. 在Telegram中创建机器人（通过 @BotFather）
+2. 获取Bot Token
+3. 配置Token：
+   ```bash
+   # 方法1：设置环境变量
+   export TELEGRAM_BOT_TOKEN="你的token"
+   
+   # 方法2：直接修改telegram_bot_real.py中的BOT_TOKEN变量
+   ```
+4. 运行机器人：
+   ```bash
+   python telegram_bot_real.py
+   ```
+
+## 📱 Telegram机器人命令
+
+### `/exchange` - 货币兑换查询
+```
+/exchange 100 JPY CNY    # 查询100日元兑人民币
+/exchange 1 USD EUR      # 查询1美元兑欧元
+/exchange 5000 KRW JPY   # 查询5000韩元兑日元
+/exchange JPY CNY        # 查询1日元兑人民币（默认金额为1）
+```
+
+### 其他命令
+- `/start` - 开始使用机器人
+- `/help` - 显示帮助信息
+- `/time` - 显示当前东京时间
+- `/about` - 关于机器人
 
 ## Currency模块
 
