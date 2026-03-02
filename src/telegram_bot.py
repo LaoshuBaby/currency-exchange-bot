@@ -79,6 +79,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     示例：/exchange 5000 KRW JPY
 /time - 显示当前东京时间
 /about - 关于此机器人
+	/list - 列出所有支持的货币代码
 
 💰 支持的货币代码：
 
@@ -277,6 +278,66 @@ async def about_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 """
     await update.message.reply_text(about_text)
 
+async def list_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """处理 /list 命令 - 列出所有支持的货币代码"""
+    try:
+        # 获取支持的货币代码
+        currencies = get_supported_currencies()
+        
+        # 分类显示
+        fiat_currencies = []
+        crypto_currencies = []
+        other_currencies = []
+        
+        for code, name in currencies.items():
+            if code in ['BTC', 'ETH', 'BNB', 'XRP', 'ADA', 'SOL', 'DOGE', 'USDT']:
+                crypto_currencies.append((code, name))
+            elif code in ['USD', 'EUR', 'GBP', 'JPY', 'CNY', 'HKD', 'KRW', 'AUD', 'CAD', 'SGD']:
+                fiat_currencies.append((code, name))
+            else:
+                other_currencies.append((code, name))
+        
+        # 构建响应
+        response = "📋 **所有支持的货币代码列表**\n\n"
+        
+        response += "💵 **主要法币**\n"
+        for code, name in sorted(fiat_currencies):
+            response += f"• {code} - {name}\n"
+        
+        response += "\n🌏 **其他法币**\n"
+        for code, name in sorted(other_currencies):
+            response += f"• {code} - {name}\n"
+        
+        response += "\n🔗 **加密货币**\n"
+        response += "（仅Google Finance支持）\n"
+        for code, name in sorted(crypto_currencies):
+            response += f"• {code} - {name}\n"
+        
+        response += f"\n📊 **总计：{len(currencies)} 种货币**\n"
+        response += f"💵 法币：{len(fiat_currencies) + len(other_currencies)} 种\n"
+        response += f"🔗 加密货币：{len(crypto_currencies)} 种\n\n"
+        
+        response += "💡 **使用提示：**\n"
+        response += "1. 本列表仅显示系统已知的货币代码\n"
+        response += "2. 您可以尝试查询任何3-4位字母的货币代码\n"
+        response += "3. 实际支持情况取决于API提供商\n"
+        response += "4. 加密货币查询请使用：/exchange BTC USD --provider google_finance\n\n"
+        
+        response += "🔧 **支持的API提供商：**\n"
+        providers = get_supported_providers()
+        for provider in providers:
+            response += f"• {provider}\n"
+        
+        await update.message.reply_text(response, parse_mode='Markdown')
+        
+    except Exception as e:
+        logger.error(f"列出货币代码失败: {e}")
+        await update.message.reply_text(
+            "❌ 列出货币代码失败\n\n"
+            f"错误信息：{str(e)}\n\n"
+            "请稍后重试或联系管理员"
+        )
+
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """处理普通文本消息"""
     user_message = update.message.text
@@ -356,6 +417,7 @@ def main():
         application.add_handler(CommandHandler("exchange", exchange_command))
         application.add_handler(CommandHandler("time", time_command))
         application.add_handler(CommandHandler("about", about_command))
+        application.add_handler(CommandHandler("list", list_command))
         
         # 添加消息处理器（处理非命令消息）
         application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))

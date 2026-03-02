@@ -65,15 +65,19 @@ SUPPORTED_PROVIDERS = [
 
 def validate_currency_code(currency_code: str) -> bool:
     """
-    验证货币代码是否有效
+    验证货币代码格式（仅检查格式，不检查是否在列表中）
     
     Args:
         currency_code: 货币代码
         
     Returns:
-        是否有效
+        是否有效格式（3-4个字母）
     """
-    return currency_code.upper() in CURRENCY_CODES
+    # 只检查基本格式：3-4个大写字母
+    if not currency_code:
+        return False
+    currency_code = currency_code.upper()
+    return len(currency_code) in (3, 4) and currency_code.isalpha()
 
 def get_supported_currencies() -> dict:
     """
