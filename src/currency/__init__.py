@@ -3,7 +3,7 @@
 提供统一的汇率查询接口
 """
 
-from .main import (
+from .__main__ import (
     get_rate,
     get_rate_with_info,
     get_supported_currencies,

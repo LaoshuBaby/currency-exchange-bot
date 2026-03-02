@@ -1,8 +1,16 @@
 """
 汇率查询模块主入口
 提供统一的汇率查询接口
+
+可作为模块导入使用，也可作为命令行工具运行：
+python -m currency JPY CNY 100
+python -m currency --from USD --to EUR --amount 1 --provider frankfurter
+python -m currency --list-currencies
+python -m currency --list-providers
 """
 
+import sys
+import argparse
 from typing import Optional
 from .providers import get_provider
 
@@ -171,3 +179,127 @@ def get_rate_with_info(
             'provider': provider,
             'error': str(e)
         }
+
+def main():
+    """命令行入口函数"""
+    parser = argparse.ArgumentParser(
+        description='汇率查询工具',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+使用示例:
+  %(prog)s JPY CNY 100                    # 查询100日元兑人民币
+  %(prog)s --from USD --to EUR --amount 1 # 查询1美元兑欧元
+  %(prog)s --list-currencies              # 列出支持的货币
+  %(prog)s --list-providers               # 列出支持的提供者
+  %(prog)s --help                         # 显示帮助信息
+        """
+    )
+    
+    # 位置参数（简化用法）
+    parser.add_argument(
+        'args', nargs='*',
+        help='简化用法: [from_currency] [to_currency] [amount]'
+    )
+    
+    # 选项参数
+    parser.add_argument(
+        '--from', '-f', dest='from_currency',
+        help='来源货币代码 (如: JPY)'
+    )
+    parser.add_argument(
+        '--to', '-t', dest='to_currency',
+        help='目标货币代码 (如: CNY)'
+    )
+    parser.add_argument(
+        '--amount', '-a', type=float, default=1.0,
+        help='来源货币金额 (默认: 1.0)'
+    )
+    parser.add_argument(
+        '--provider', '-p', default='exchangerate_api',
+        help='汇率提供者 (默认: exchangerate_api)'
+    )
+    parser.add_argument(
+        '--list-currencies', '-lc', action='store_true',
+        help='列出支持的货币代码'
+    )
+    parser.add_argument(
+        '--list-providers', '-lp', action='store_true',
+        help='列出支持的提供者'
+    )
+    parser.add_argument(
+        '--verbose', '-v', action='store_true',
+        help='显示详细信息'
+    )
+    
+    args = parser.parse_args()
+    
+    # 处理列表显示
+    if args.list_currencies:
+        print("📊 支持的货币代码:")
+        currencies = get_supported_currencies()
+        for i, (code, name) in enumerate(currencies.items(), 1):
+            print(f"  {code:4} - {name}")
+            if i % 5 == 0:
+                print()
+        return 0
+    
+    if args.list_providers:
+        print("🔧 支持的汇率提供者:")
+        providers = get_supported_providers()
+        for provider in providers:
+            print(f"  • {provider}")
+        return 0
+    
+    # 解析参数
+    from_currency = args.from_currency
+    to_currency = args.to_currency
+    
+    # 如果使用简化位置参数
+    if args.args:
+        if len(args.args) >= 2:
+            from_currency = args.args[0]
+            to_currency = args.args[1]
+        if len(args.args) >= 3:
+            try:
+                args.amount = float(args.args[2])
+            except ValueError:
+                print(f"❌ 错误: 金额参数无效: {args.args[2]}")
+                return 1
+    
+    # 验证必要参数
+    if not from_currency or not to_currency:
+        print("❌ 错误: 必须指定来源货币和目标货币")
+        print("   使用 --from 和 --to 选项，或使用简化格式: JPY CNY [amount]")
+        return 1
+    
+    # 执行查询
+    try:
+        result = get_rate(from_currency, to_currency, args.amount, args.provider)
+        
+        if result is None:
+            print(f"❌ 查询失败: {from_currency} → {to_currency}")
+            return 1
+        
+        # 显示结果
+        from_name = CURRENCY_CODES.get(from_currency.upper(), from_currency)
+        to_name = CURRENCY_CODES.get(to_currency.upper(), to_currency)
+        
+        print(f"💱 汇率查询结果:")
+        print(f"   {args.amount:.2f} {from_currency} ({from_name})")
+        print(f"   = {result:.4f} {to_currency} ({to_name})")
+        
+        if args.verbose:
+            print(f"   提供者: {args.provider}")
+            print(f"   汇率: 1 {from_currency} = {result/args.amount:.6f} {to_currency}")
+        
+        return 0
+        
+    except ValueError as e:
+        print(f"❌ 错误: {e}")
+        return 1
+    except Exception as e:
+        print(f"❌ 查询失败: {e}")
+        return 1
+
+if __name__ == "__main__":
+    sys.exit(main())
