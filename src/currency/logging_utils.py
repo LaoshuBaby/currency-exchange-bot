@@ -11,6 +11,15 @@ from datetime import datetime
 from typing import Dict, Any, Optional
 import inspect
 
+# 导入全局HTTP日志系统
+try:
+    from http_logger import log_http_request as global_log_http_request, log_http_response as global_log_http_response
+except ImportError:
+    # 如果直接导入失败，尝试相对导入
+    import sys
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from src.http_logger import log_http_request as global_log_http_request, log_http_response as global_log_http_response
+
 # 全局日志配置
 LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 DATE_FORMAT = '%Y-%m-%d %H:%M:%S'
@@ -108,6 +117,12 @@ def log_http_request(
             log_data['data'] = str(data)
     
     logger.info(f"HTTP请求: {json.dumps(log_data, ensure_ascii=False)}")
+    
+    # 同时记录到全局HTTP日志系统
+    try:
+        global_log_http_request(method, url, headers=headers, params=params, data=data, source=f"currency.{logger.name}")
+    except Exception as e:
+        logger.warning(f"记录到全局HTTP日志失败: {e}")
 
 def log_http_response(
     logger: logging.Logger,
@@ -149,6 +164,12 @@ def log_http_response(
             log_data['response'] = response_text
     
     logger.info(f"HTTP响应: {json.dumps(log_data, ensure_ascii=False)}")
+    
+    # 同时记录到全局HTTP日志系统
+    try:
+        global_log_http_response(method, url, status_code, response_text=response_text, response_json=response_json, source=f"currency.{logger.name}")
+    except Exception as e:
+        logger.warning(f"记录到全局HTTP日志失败: {e}")
 
 def log_exchange_request(
     logger: logging.Logger,

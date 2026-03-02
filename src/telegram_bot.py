@@ -20,6 +20,15 @@ except ImportError:
     sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     from src.currency import get_rate, get_rate_with_info, get_supported_currencies, get_supported_providers
 
+# 导入全局HTTP日志系统
+try:
+    from http_logger import log_telegram_update, log_telegram_response
+except ImportError:
+    # 如果直接导入失败，尝试相对导入
+    import sys
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from src.http_logger import log_telegram_update, log_telegram_response
+
 # 设置日志
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -33,6 +42,9 @@ BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "YOUR_BOT_TOKEN_HERE")
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """处理 /start 命令"""
+    # 记录Telegram更新
+    log_telegram_update(update.to_dict(), source="start_command")
+    
     user = update.effective_user
     welcome_text = f"""
 🎉 Hello World! 欢迎 {user.first_name}！
@@ -45,22 +57,30 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 📋 可用命令：
 /start - 显示此欢迎信息
 /help - 查看详细帮助
-/exchange [金额] [货币] [货币] - 货币兑换查询
+/exchange [金额] [货币] [货币] [提供者] - 货币兑换查询
 /time - 显示当前东京时间
 /about - 关于此机器人
+/list - 列出所有支持的货币代码
 
 💡 示例：
-/exchange 100 JPY CNY - 查询100日元兑人民币
+/exchange 100 JPY CNY - 查询100日元兑人民币（默认Frankfurter）
 /exchange 1 USD EUR - 查询1美元兑欧元
 /exchange JPY CNY - 查询1日元兑人民币
+/exchange BTC USD google_finance - 查询比特币兑美元（使用Google Finance）
 /time - 显示当前东京时间
 
 🚀 开始使用吧！
 """
     await update.message.reply_text(welcome_text)
+    
+    # 记录Telegram响应
+    log_telegram_response("start_command", update.effective_chat.id, welcome_text[:100])
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """处理 /help 命令"""
+    # 记录Telegram更新
+    log_telegram_update(update.to_dict(), source="help_command")
+    
     help_text = """
 📚 帮助文档
 
@@ -72,11 +92,13 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 📋 命令列表：
 /start - 开始使用机器人
 /help - 显示此帮助信息
-/exchange [金额] [来源货币] [目标货币] - 货币兑换查询
-    格式1：/exchange 100 JPY CNY (查询100日元兑人民币)
+/exchange [金额] [来源货币] [目标货币] [提供者] - 货币兑换查询
+    格式1：/exchange 100 JPY CNY (查询100日元兑人民币，默认Frankfurter)
     格式2：/exchange JPY CNY (查询1日元兑人民币)
+    格式3：/exchange BTC USD google_finance (查询比特币兑美元，使用Google Finance)
     示例：/exchange 1 USD EUR
     示例：/exchange 5000 KRW JPY
+    示例：/exchange 0.5 ETH EUR google_finance
 /time - 显示当前东京时间
 /about - 关于此机器人
 	/list - 列出所有支持的货币代码
@@ -103,21 +125,36 @@ DOGE - 狗狗币
 • 汇率数据：Frankfurter API (实时汇率)
 """
     await update.message.reply_text(help_text)
+    
+    # 记录Telegram响应
+    log_telegram_response("help_command", update.effective_chat.id, help_text[:100])
 
 async def exchange_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """处理 /exchange 命令 - 货币兑换查询"""
-    # 解析参数：支持两种格式：
+    # 记录Telegram更新
+    log_telegram_update(update.to_dict(), source="exchange_command")
+    
+    # 解析参数：支持多种格式：
     # 1. /exchange 100 JPY CNY (金额 来源货币 目标货币)
     # 2. /exchange JPY CNY (默认金额为1)
+    # 3. /exchange 100 JPY CNY frankfurter (指定提供者)
+    # 4. /exchange JPY CNY google_finance (指定提供者)
     
     if not context.args:
         await update.message.reply_text(
-            "❌ 使用方法：/exchange [金额] [来源货币] [目标货币]\n\n"
+            "❌ 使用方法：/exchange [金额] [来源货币] [目标货币] [提供者]\n\n"
             "💡 示例：\n"
-            "/exchange 100 JPY CNY - 查询100日元兑人民币\n"
+            "/exchange 100 JPY CNY - 查询100日元兑人民币（默认Frankfurter）\n"
             "/exchange 1 USD EUR - 查询1美元兑欧元\n"
             "/exchange 5000 KRW JPY - 查询5000韩元兑日元\n"
-            "/exchange JPY CNY - 查询1日元兑人民币\n\n"
+            "/exchange JPY CNY - 查询1日元兑人民币\n"
+            "/exchange BTC USD google_finance - 查询比特币兑美元（使用Google Finance）\n"
+            "/exchange 0.5 ETH EUR google_finance - 查询0.5以太坊兑欧元\n\n"
+            "📋 支持的提供者：\n"
+            "• frankfurter (默认) - 主要法币\n"
+            "• google_finance - 支持加密货币\n"
+            "• exchangerate_api - 免费API\n"
+            "• openexchangerates - 免费API\n\n"
             "📋 常用货币代码：\n"
             "USD(美元), EUR(欧元), GBP(英镑)\n"
             "JPY(日元), CNY(人民币), HKD(港币)\n"
@@ -130,13 +167,23 @@ async def exchange_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     amount = 1.0  # 默认金额
     from_currency = ""
     to_currency = ""
+    provider = "frankfurter"  # 默认提供者
     
+    # 支持的提供者列表
+    supported_providers = get_supported_providers()
+    
+    # 检查最后一个参数是否是提供者
+    if len(args) >= 3 and args[-1] in supported_providers:
+        provider = args[-1]
+        args = args[:-1]  # 移除提供者参数
+    
+    # 解析剩余参数
     if len(args) == 2:
-        # 格式：/exchange JPY CNY
+        # 格式：/exchange JPY CNY [provider]
         from_currency = args[0].upper()
         to_currency = args[1].upper()
     elif len(args) == 3:
-        # 格式：/exchange 100 JPY CNY
+        # 格式：/exchange 100 JPY CNY [provider]
         try:
             amount = float(args[0])
             if amount <= 0:
@@ -151,18 +198,21 @@ async def exchange_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(
             "❌ 参数格式不正确\n\n"
             "正确格式：\n"
-            "/exchange [金额] [来源货币] [目标货币]\n"
-            "或 /exchange [来源货币] [目标货币]\n\n"
+            "/exchange [金额] [来源货币] [目标货币] [提供者]\n"
+            "或 /exchange [来源货币] [目标货币] [提供者]\n\n"
             "示例：\n"
             "/exchange 100 JPY CNY\n"
-            "/exchange JPY CNY"
+            "/exchange JPY CNY\n"
+            "/exchange BTC USD google_finance\n"
+            "/exchange 0.5 ETH EUR google_finance\n\n"
+            "💡 使用 /list 查看所有支持的货币代码"
         )
         return
     
     # 获取汇率（使用真实API）
     try:
         # 使用get_rate_with_info获取包含提供者信息的完整结果
-        rate_info = get_rate_with_info(from_currency, to_currency, amount)
+        rate_info = get_rate_with_info(from_currency, to_currency, amount, provider)
         
         if rate_info.get('success') and rate_info.get('result') is not None:
             result = rate_info['result']
@@ -216,9 +266,15 @@ async def exchange_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         response += "请稍后重试或联系管理员"
     
     await update.message.reply_text(response)
+    
+    # 记录Telegram响应
+    log_telegram_response("exchange_command", update.effective_chat.id, response[:200])
 
 async def time_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """处理 /time 命令"""
+    # 记录Telegram更新
+    log_telegram_update(update.to_dict(), source="time_command")
+    
     # 获取当前东京时间
     current_time = datetime.now()
     
@@ -239,9 +295,15 @@ async def time_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 ⚙️ 机器人状态：运行中
 """
     await update.message.reply_text(time_text)
+    
+    # 记录Telegram响应
+    log_telegram_response("time_command", update.effective_chat.id, time_text[:100])
 
 async def about_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """处理 /about 命令"""
+    # 记录Telegram更新
+    log_telegram_update(update.to_dict(), source="about_command")
+    
     about_text = """
 🤖 关于汇率查询机器人
 
@@ -277,9 +339,15 @@ async def about_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 ❤️ 感谢使用！
 """
     await update.message.reply_text(about_text)
+    
+    # 记录Telegram响应
+    log_telegram_response("about_command", update.effective_chat.id, about_text[:100])
 
 async def list_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """处理 /list 命令 - 列出所有支持的货币代码"""
+    # 记录Telegram更新
+    log_telegram_update(update.to_dict(), source="list_command")
+    
     try:
         # 获取支持的货币代码
         currencies = get_supported_currencies()
@@ -330,16 +398,22 @@ async def list_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         await update.message.reply_text(response, parse_mode='Markdown')
         
+        # 记录Telegram响应
+        log_telegram_response("list_command", update.effective_chat.id, response[:200])
+        
     except Exception as e:
         logger.error(f"列出货币代码失败: {e}")
-        await update.message.reply_text(
-            "❌ 列出货币代码失败\n\n"
-            f"错误信息：{str(e)}\n\n"
-            "请稍后重试或联系管理员"
-        )
+        error_response = f"❌ 列出货币代码失败\n\n错误信息：{str(e)}\n\n请稍后重试或联系管理员"
+        await update.message.reply_text(error_response)
+        
+        # 记录Telegram响应
+        log_telegram_response("list_command", update.effective_chat.id, error_response[:200])
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """处理普通文本消息"""
+    # 记录Telegram更新
+    log_telegram_update(update.to_dict(), source="handle_message")
+    
     user_message = update.message.text
     
     # 如果消息看起来像货币查询（但不是命令）
@@ -347,23 +421,19 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parts = user_message.upper().split()
         if len(parts[0]) == 3 and len(parts[1]) == 3:
             # 可能是货币代码，提供帮助
-            await update.message.reply_text(
-                f"检测到可能的货币代码：{parts[0]} {parts[1]}\n\n"
-                f"💡 想查询汇率吗？请使用：\n"
-                f"/exchange {parts[0]} {parts[1]}\n\n"
-                f"示例：/exchange 100 {parts[0]} {parts[1]}"
-            )
+            response = f"检测到可能的货币代码：{parts[0]} {parts[1]}\n\n💡 想查询汇率吗？请使用：\n/exchange {parts[0]} {parts[1]}\n\n示例：/exchange 100 {parts[0]} {parts[1]}"
+            await update.message.reply_text(response)
+            
+            # 记录Telegram响应
+            log_telegram_response("handle_message", update.effective_chat.id, response[:200])
             return
     
     # 默认回复
-    await update.message.reply_text(
-        f"👋 你好！你发送了：{user_message}\n\n"
-        f"我是汇率查询机器人，可以帮你：\n"
-        f"• 查询货币汇率 - 使用 /exchange 100 JPY CNY\n"
-        f"• 查看当前时间 - 使用 /time\n"
-        f"• 获取帮助信息 - 使用 /help\n\n"
-        f"试试这些命令吧！"
-    )
+    response = f"👋 你好！你发送了：{user_message}\n\n我是汇率查询机器人，可以帮你：\n• 查询货币汇率 - 使用 /exchange 100 JPY CNY\n• 查看当前时间 - 使用 /time\n• 获取帮助信息 - 使用 /help\n\n试试这些命令吧！"
+    await update.message.reply_text(response)
+    
+    # 记录Telegram响应
+    log_telegram_response("handle_message", update.effective_chat.id, response[:200])
 
 async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """处理错误"""
