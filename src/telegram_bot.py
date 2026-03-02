@@ -11,6 +11,15 @@ from datetime import datetime
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
 
+# 导入汇率查询模块
+try:
+    from currency import get_rate, get_rate_with_info, get_supported_currencies, get_supported_providers
+except ImportError:
+    # 如果直接导入失败，尝试相对导入
+    import sys
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from src.currency import get_rate, get_rate_with_info, get_supported_currencies, get_supported_providers
+
 # 设置日志
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -21,31 +30,6 @@ logger = logging.getLogger(__name__)
 # 从环境变量获取Bot Token（推荐方式）
 # 或者在代码中直接设置（不推荐用于生产环境）
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "YOUR_BOT_TOKEN_HERE")
-
-# 模拟汇率数据（实际使用时应该调用汇率API）
-MOCK_EXCHANGE_RATES = {
-    "JPY_CNY": 0.0439,    # 1日元 = 0.0439人民币
-    "USD_CNY": 6.87,      # 1美元 = 6.87人民币
-    "EUR_CNY": 7.45,      # 1欧元 = 7.45人民币
-    "GBP_CNY": 8.72,      # 1英镑 = 8.72人民币
-    "HKD_CNY": 0.88,      # 1港币 = 0.88人民币
-    "KRW_CNY": 0.0052,    # 1韩元 = 0.0052人民币
-}
-
-def get_mock_rate(from_currency, to_currency):
-    """获取模拟汇率（实际使用时替换为真实API调用）"""
-    key = f"{from_currency}_{to_currency}"
-    if key in MOCK_EXCHANGE_RATES:
-        return MOCK_EXCHANGE_RATES[key]
-    
-    # 如果没有直接汇率，尝试通过CNY中转
-    if from_currency != "CNY" and to_currency != "CNY":
-        rate_to_cny = MOCK_EXCHANGE_RATES.get(f"{from_currency}_CNY")
-        rate_from_cny = 1 / MOCK_EXCHANGE_RATES.get(f"{to_currency}_CNY", 1)
-        if rate_to_cny and rate_from_cny:
-            return rate_to_cny * rate_from_cny
-    
-    return None
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """处理 /start 命令"""
@@ -107,8 +91,7 @@ CAD - 加元        SGD - 新加坡元
 • 使用 python-telegram-bot 库
 • 时区：东京时间 (Asia/Tokyo)
 • 开发者：openhands-hotaru
-
-⚠️ 注意：当前使用模拟汇率数据，实际使用时需要集成真实汇率API。
+• 汇率数据：Frankfurter API (实时汇率)
 """
     await update.message.reply_text(help_text)
 
@@ -167,48 +150,55 @@ async def exchange_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
     
-    # 获取汇率
-    rate = get_mock_rate(from_currency, to_currency)
-    
-    if rate:
-        # 计算兑换金额
-        converted = amount * rate
+    # 获取汇率（使用真实API）
+    try:
+        result = get_rate(from_currency, to_currency, amount)
         
-        response = f"💱 货币兑换查询\n\n"
-        response += f"📊 查询详情：\n"
-        response += f"• 金额：{amount:,.2f} {from_currency}\n"
-        response += f"• 目标：{to_currency}\n"
-        response += f"• 汇率：1 {from_currency} = {rate:.6f} {to_currency}\n\n"
-        
-        response += f"💰 兑换结果：\n"
-        response += f"**{amount:,.2f} {from_currency} ≈ {converted:,.2f} {to_currency}**\n\n"
-        
-        # 显示常见金额换算
-        if amount != 1:
-            response += f"📈 其他金额换算：\n"
-            common_amounts = [1, 10, 50, 100, 500, 1000]
-            for common_amount in common_amounts:
-                if common_amount != amount:
-                    common_converted = common_amount * rate
-                    response += f"{common_amount:5,d} {from_currency} ≈ {common_converted:10.2f} {to_currency}\n"
-        
-        # 显示反向汇率
-        if rate > 0:
-            reverse_rate = 1 / rate
-            response += f"\n🔄 反向汇率：\n"
-            response += f"1 {to_currency} = {reverse_rate:.4f} {from_currency}"
-        
-        response += f"\n\n⏰ 查询时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-        response += f"\n📍 时区：东京时间 (JST)"
-        response += f"\n⚠️ 注意：当前使用模拟汇率数据"
-        
-    else:
-        response = f"❌ 无法获取 {from_currency} 到 {to_currency} 的汇率\n\n"
-        response += "可能原因：\n"
-        response += "• 货币代码不正确\n"
-        response += "• 该货币对暂不支持\n"
-        response += "• 汇率数据暂时不可用\n\n"
-        response += "💡 请使用 /help 查看支持的货币代码"
+        if result is not None:
+            # 计算汇率（每单位）
+            rate = result / amount if amount > 0 else 0
+            
+            response = f"💱 货币兑换查询\n\n"
+            response += f"📊 查询详情：\n"
+            response += f"• 金额：{amount:,.2f} {from_currency}\n"
+            response += f"• 目标：{to_currency}\n"
+            response += f"• 汇率：1 {from_currency} = {rate:.6f} {to_currency}\n\n"
+            
+            response += f"💰 兑换结果：\n"
+            response += f"**{amount:,.2f} {from_currency} ≈ {result:,.2f} {to_currency}**\n\n"
+            
+            # 显示常见金额换算
+            if amount != 1:
+                response += f"📈 其他金额换算：\n"
+                common_amounts = [1, 10, 50, 100, 500, 1000]
+                for common_amount in common_amounts:
+                    if common_amount != amount:
+                        common_converted = common_amount * rate
+                        response += f"{common_amount:5,d} {from_currency} ≈ {common_converted:10.2f} {to_currency}\n"
+            
+            # 显示反向汇率
+            if rate > 0:
+                reverse_rate = 1 / rate
+                response += f"\n🔄 反向汇率：\n"
+                response += f"1 {to_currency} = {reverse_rate:.4f} {from_currency}"
+            
+            response += f"\n\n⏰ 查询时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+            response += f"\n📍 时区：东京时间 (JST)"
+            response += f"\n✅ 使用实时汇率数据 (Frankfurter API)"
+            
+        else:
+            response = f"❌ 无法获取 {from_currency} 到 {to_currency} 的汇率\n\n"
+            response += "可能原因：\n"
+            response += "• 货币代码不正确\n"
+            response += "• 该货币对暂不支持\n"
+            response += "• 汇率数据暂时不可用\n\n"
+            response += "💡 请使用 /help 查看支持的货币代码"
+            
+    except Exception as e:
+        logger.error(f"汇率查询失败: {e}")
+        response = f"❌ 汇率查询失败\n\n"
+        response += f"错误信息：{str(e)}\n\n"
+        response += "请稍后重试或联系管理员"
     
     await update.message.reply_text(response)
 

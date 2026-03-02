@@ -6,15 +6,17 @@ Google Finance 提供者
 import requests
 import re
 from typing import Optional
+from .base_provider import BaseProvider
 
-class GoogleFinanceProvider:
+class GoogleFinanceProvider(BaseProvider):
     """Google Finance 汇率查询提供者"""
     
     def __init__(self):
+        super().__init__()
         self.name = "Google Finance"
         self.base_url = "https://www.google.com/finance/quote"
     
-    def get_rate(self, from_currency: str, to_currency: str, amount: float = 1.0) -> Optional[float]:
+    def _get_rate_impl(self, from_currency: str, to_currency: str, amount: float = 1.0) -> Optional[float]:
         """
         获取汇率
         
@@ -36,9 +38,15 @@ class GoogleFinanceProvider:
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
             }
             
+            # 记录HTTP请求
+            self.log_http_request("GET", url, headers=headers)
+            
             # 发送请求
             response = requests.get(url, headers=headers, timeout=10)
             response.raise_for_status()
+            
+            # 记录HTTP响应
+            self.log_http_response("GET", url, response.status_code, response_text=response.text[:500] + "...")
             
             # 从HTML中提取汇率
             html = response.text
@@ -64,5 +72,5 @@ class GoogleFinanceProvider:
             return None
             
         except Exception as e:
-            print(f"[{self.name}] 查询失败: {e}")
+            self.logger.error(f"查询失败: {e}")
             return None

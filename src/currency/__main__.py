@@ -91,7 +91,7 @@ def get_rate(
     from_currency: str, 
     to_currency: str, 
     amount: float = 1.0, 
-    provider: str = "exchangerate_api"
+    provider: str = "frankfurter"
 ) -> Optional[float]:
     """
     获取汇率换算结果
@@ -134,7 +134,7 @@ def get_rate_with_info(
     from_currency: str, 
     to_currency: str, 
     amount: float = 1.0, 
-    provider: str = "exchangerate_api"
+    provider: str = "frankfurter"
 ) -> dict:
     """
     获取汇率换算结果（包含详细信息）
@@ -215,8 +215,12 @@ def main():
         help='来源货币金额 (默认: 1.0)'
     )
     parser.add_argument(
-        '--provider', '-p', default='exchangerate_api',
-        help='汇率提供者 (默认: exchangerate_api)'
+        '--provider', '-p', default='frankfurter',
+        help='汇率提供者 (默认: frankfurter)'
+    )
+    parser.add_argument(
+        '--list', '-l', action='store_true',
+        help='列出支持的货币代码和提供者'
     )
     parser.add_argument(
         '--list-currencies', '-lc', action='store_true',
@@ -234,20 +238,22 @@ def main():
     args = parser.parse_args()
     
     # 处理列表显示
-    if args.list_currencies:
-        print("📊 支持的货币代码:")
-        currencies = get_supported_currencies()
-        for i, (code, name) in enumerate(currencies.items(), 1):
-            print(f"  {code:4} - {name}")
-            if i % 5 == 0:
-                print()
-        return 0
-    
-    if args.list_providers:
-        print("🔧 支持的汇率提供者:")
-        providers = get_supported_providers()
-        for provider in providers:
-            print(f"  • {provider}")
+    if args.list or args.list_currencies or args.list_providers:
+        if args.list or args.list_currencies:
+            print("📊 支持的货币代码:")
+            currencies = get_supported_currencies()
+            for i, (code, name) in enumerate(currencies.items(), 1):
+                print(f"  {code:4} - {name}")
+                if i % 5 == 0:
+                    print()
+            print()
+        
+        if args.list or args.list_providers:
+            print("🔧 支持的汇率提供者:")
+            providers = get_supported_providers()
+            for provider in providers:
+                print(f"  • {provider}")
+        
         return 0
     
     # 解析参数

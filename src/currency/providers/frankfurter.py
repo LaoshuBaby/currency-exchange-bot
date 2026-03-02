@@ -5,15 +5,17 @@ API文档: https://www.frankfurter.app/docs/
 
 import requests
 from typing import Optional
+from .base_provider import BaseProvider
 
-class FrankfurterProvider:
+class FrankfurterProvider(BaseProvider):
     """Frankfurter 汇率查询提供者"""
     
     def __init__(self):
+        super().__init__()
         self.name = "Frankfurter"
         self.base_url = "https://api.frankfurter.app/latest"
     
-    def get_rate(self, from_currency: str, to_currency: str, amount: float = 1.0) -> Optional[float]:
+    def _get_rate_impl(self, from_currency: str, to_currency: str, amount: float = 1.0) -> Optional[float]:
         """
         获取汇率
         
@@ -29,12 +31,18 @@ class FrankfurterProvider:
             # 构建API URL
             url = f"{self.base_url}?from={from_currency.upper()}&to={to_currency.upper()}"
             
+            # 记录HTTP请求
+            self.log_http_request("GET", url)
+            
             # 发送请求
             response = requests.get(url, timeout=10)
             response.raise_for_status()
             
             # 解析响应
             data = response.json()
+            
+            # 记录HTTP响应
+            self.log_http_response("GET", url, response.status_code, response_json=data)
             
             # 获取汇率
             rate = data['rates'].get(to_currency.upper())
@@ -45,5 +53,5 @@ class FrankfurterProvider:
             return amount * rate
             
         except Exception as e:
-            print(f"[{self.name}] 查询失败: {e}")
+            self.logger.error(f"查询失败: {e}")
             return None

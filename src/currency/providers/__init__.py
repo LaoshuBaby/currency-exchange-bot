@@ -2,6 +2,7 @@
 汇率查询提供者模块
 """
 
+from .base_provider import BaseProvider
 from .exchangerate_api import ExchangeRateAPIProvider
 from .frankfurter import FrankfurterProvider
 from .openexchangerates import OpenExchangeRatesProvider
