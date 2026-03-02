@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 """
 Currency Exchange Bot 使用示例
+
+这个文件展示了如何使用currency模块进行汇率查询。
 """
 
 from currency import get_rate, get_supported_currencies, get_supported_providers
 
 def main():
+    """主函数：展示currency模块的使用方法"""
     print("=" * 60)
     print("Currency Exchange Bot 使用示例")
     print("=" * 60)

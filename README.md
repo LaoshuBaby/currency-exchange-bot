@@ -14,7 +14,6 @@
 - **多货币支持**: 支持24种常见货币，包括主要货币、加密货币和贵金属
 - **灵活的参数格式**: 支持带金额和不带金额的查询
 - **完善的错误处理**: 参数验证、错误提示和友好的用户界面
-- **东京时间同步**: 机器人显示东京时间，适合日本用户使用
 
 ## 🚀 快速开始
 
@@ -52,11 +51,11 @@ print(f"1美元 ≈ {result:.4f}欧元")
    # 方法1：设置环境变量
    export TELEGRAM_BOT_TOKEN="你的token"
    
-   # 方法2：直接修改telegram_bot_real.py中的BOT_TOKEN变量
+   # 方法2：直接修改telegram_bot.py中的BOT_TOKEN变量
    ```
 4. 运行机器人：
    ```bash
-   python telegram_bot_real.py
+   python telegram_bot.py
    ```
 
 ## 📱 Telegram机器人命令
